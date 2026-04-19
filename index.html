@@ -867,7 +867,7 @@ body {
   // Load libraries BEFORE the module starts
   console.log('[index.html] Loading libraries...');
 </script>
-<script src="./node_modules/music-tempo/dist/browser/music-tempo.min.js" onload="console.log('[index.html] ✅ music-tempo loaded'); window.MUSIC_TEMPO_LOADED = true;" onerror="console.error('[index.html] ❌ music-tempo FAILED to load'); window.MUSIC_TEMPO_FAILED = true;"></script>
+<script src="https://cdn.jsdelivr.net/npm/music-tempo@1.0.3/dist/browser/music-tempo.min.js" onload="console.log('[index.html] ✅ music-tempo loaded'); window.MUSIC_TEMPO_LOADED = true;" onerror="console.error('[index.html] ❌ music-tempo FAILED to load'); window.MUSIC_TEMPO_FAILED = true;"></script>
 <script src="https://cdn.jsdelivr.net/npm/meyda@5.6.3/dist/web/meyda.min.js" onload="console.log('[index.html] ✅ meyda loaded'); window.MEYDA_LOADED = true;" onerror="console.error('[index.html] ❌ meyda FAILED to load'); window.MEYDA_FAILED = true;"></script>
 <script>
   console.log('[index.html] After library attempts:', {

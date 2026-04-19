@@ -34,6 +34,7 @@ export function mapPost(p) {
     url:             (p.track && p.track.href) ? p.track.href.replace(/\+/g, '%20') : null,
     slug:            p.id || null,
     buyUrl:          p.buy_url || '',
+    mark:            0,   // 0 = none, 1-5 = colored bookmark
   };
 }
 
