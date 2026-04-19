@@ -734,6 +734,24 @@ body {
   .library-table tbody tr.loaded-b td:first-child::before {
     content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #000;
   }
+  .library-table tbody tr.highlight { background: #000; color: #fff; }
+  .library-table tbody tr.highlight:hover { background: #000; color: #fff; }
+  .library { transition: all 0.3s ease; }
+  .library.fullscreen {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 999; background: #fff; display: flex; flex-direction: column;
+    width: 100vw; height: 100vh; margin: 0; padding: 0;
+    box-shadow: none; border: none;
+  }
+  .library.fullscreen .library-head {
+    padding: 1rem; border-bottom: 1px solid #000; flex-shrink: 0;
+  }
+  .library.fullscreen .library-head .search {
+    width: 100%; font-size: 18px; padding: 8px 12px;
+  }
+  .library.fullscreen .library-table {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+  }
   .library-table tbody td {
     padding: 8px 14px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1310,7 +1328,10 @@ body {
     <p>
       <kbd>A</kbd>&nbsp;/&nbsp;<kbd>L</kbd>&nbsp;— play deck A&nbsp;/&nbsp;B<br>
       <kbd>←</kbd>&nbsp;/&nbsp;<kbd>→</kbd>&nbsp;— crossfader<br>
-      <kbd>R</kbd>&nbsp;— enregistrer la session<br>
+      <kbd>Shift</kbd>+<kbd>B</kbd>&nbsp;— bibliothèque plein écran<br>
+      <kbd>↑</kbd>&nbsp;/&nbsp;<kbd>↓</kbd>&nbsp;— naviguer dans la liste<br>
+      <kbd>Entrée</kbd>&nbsp;— charger le track<br>
+      <kbd>Echap</kbd>&nbsp;— fermer<br>
       <kbd>Espace</kbd>&nbsp;— tout mettre en pause
     </p>
   </div>

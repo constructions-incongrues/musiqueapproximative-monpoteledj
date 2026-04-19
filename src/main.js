@@ -1,7 +1,8 @@
 import { deckA, deckB } from './audio.js';
 import { fetchLibrary, LIBRARY, renderLibrary, populateContribFilter } from './library.js';
 import { applyCrossfader, adjustXfader, wireXfader, wireChannelFader, wireEq, wirePitch,
-         loadTrack, togglePlay, sync, animate } from './mixer.js';
+         loadTrack, togglePlay, sync, animate, 
+         toggleFullscreen, navigateHighlight, loadHighlighted, fullscreenMode, highlightedIdx } from './mixer.js';
 import { initMidi } from './midi.js';
 
 wireXfader();
@@ -72,14 +73,63 @@ document.querySelectorAll('.headphone').forEach(h => {
 
 
 
-window.addEventListener('keydown', e => {
-  if (e.target.tagName === "INPUT") return;
-  if (e.key === 'a' || e.key === 'A') togglePlay('a');
-  else if (e.key === 'l' || e.key === 'L') togglePlay('b');
-  else if (e.key === 'ArrowLeft') adjustXfader(-0.05);
-  else if (e.key === 'ArrowRight') adjustXfader(0.05);
+let _percentTimestamp = 0;
 
-  else if (e.key === ' ') { e.preventDefault(); if (deckA.playing || deckB.playing) { if(deckA.playing) togglePlay('a'); if(deckB.playing) togglePlay('b'); } }
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === "INPUT" && e.key !== "Escape") {
+    // In fullscreen search mode, allow arrow keys and Enter
+    if (fullscreenMode && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter')) {
+      // Continue to handle below
+    } else {
+      return;
+    }
+  }
+
+  // Fullscreen mode navigation
+  if (fullscreenMode) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      navigateHighlight(1);
+      return;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      navigateHighlight(-1);
+      return;
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      loadHighlighted('a');
+      toggleFullscreen();
+      return;
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      toggleFullscreen();
+      return;
+    }
+  }
+
+  // Normal mode: Detect Shift+B for fullscreen toggle
+  if (e.shiftKey && (e.key === 'b' || e.key === 'B')) {
+    e.preventDefault();
+    toggleFullscreen();
+    return;
+  }
+
+  // Normal playback controls
+  if (e.key === 'a' || e.key === 'A') {
+    togglePlay('a');
+  } else if (e.key === 'l' || e.key === 'L') {
+    togglePlay('b');
+  } else if (e.key === 'ArrowLeft') {
+    adjustXfader(-0.05);
+  } else if (e.key === 'ArrowRight') {
+    adjustXfader(0.05);
+  } else if (e.key === ' ') { 
+    e.preventDefault(); 
+    if (deckA.playing || deckB.playing) { 
+      if(deckA.playing) togglePlay('a'); 
+      if(deckB.playing) togglePlay('b'); 
+    }
+  }
 });
 
 function applyTweaks(t) {

@@ -4,6 +4,10 @@ import { detectBpm, detectKey } from './lib.js';
 
 export let xfaderVal = 0.5;
 
+// Fullscreen library search state
+export let fullscreenMode = false;
+export let highlightedIdx = -1;
+
 export function applyCrossfader() {
   const a = Math.cos(xfaderVal * Math.PI/2);
   const b = Math.sin(xfaderVal * Math.PI/2);
@@ -343,3 +347,93 @@ export function updatePlayhead(id, deck) {
 buildMeter(document.getElementById('meter-a'), 16);
 buildMeter(document.getElementById('meter-b'), 16);
 buildMeter(document.getElementById('vu-master'), 40);
+
+// Fullscreen library search functions
+export function toggleFullscreen() {
+  fullscreenMode = !fullscreenMode;
+  console.log('[mixer.toggleFullscreen] Toggling fullscreen to', fullscreenMode);
+  const lib = document.getElementById('library');
+  console.log('[mixer.toggleFullscreen] Library element:', lib);
+  if (lib) {
+    lib.classList.toggle('fullscreen', fullscreenMode);
+    console.log('[mixer.toggleFullscreen] Applied fullscreen class, lib.className now:', lib.className);
+  }
+  highlightedIdx = -1;
+  clearHighlight();
+  if (fullscreenMode) {
+    const searchInput = document.getElementById('library-search');
+    console.log('[mixer.toggleFullscreen] Focusing search input:', searchInput);
+    if (searchInput) searchInput.focus();
+  }
+}
+
+export function clearHighlight() {
+  document.querySelectorAll('#library-body tr').forEach(r => r.classList.remove('highlight'));
+}
+
+export function highlightRow(idx) {
+  if (idx < 0 || idx >= LIBRARY.length) return;
+  clearHighlight();
+  const visibleRows = Array.from(document.querySelectorAll('#library-body tr')).filter(r => {
+    return r.style.display !== 'none';
+  });
+  if (visibleRows.length === 0) {
+    highlightedIdx = -1;
+    return;
+  }
+  
+  // Find the row with this data-idx among visible rows
+  let targetRow = null;
+  for (const row of visibleRows) {
+    if (parseInt(row.dataset.idx) === idx) {
+      targetRow = row;
+      break;
+    }
+  }
+  
+  if (targetRow) {
+    targetRow.classList.add('highlight');
+    targetRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    highlightedIdx = idx;
+  }
+}
+
+export function navigateHighlight(direction) {
+  const visibleRows = Array.from(document.querySelectorAll('#library-body tr')).filter(r => {
+    return r.style.display !== 'none';
+  });
+  
+  if (visibleRows.length === 0) return;
+  
+  if (highlightedIdx === -1) {
+    // Highlight first visible row
+    const idx = parseInt(visibleRows[0].dataset.idx);
+    highlightRow(idx);
+  } else {
+    // Find current highlight position in visible rows
+    let currentPos = -1;
+    for (let i = 0; i < visibleRows.length; i++) {
+      if (parseInt(visibleRows[i].dataset.idx) === highlightedIdx) {
+        currentPos = i;
+        break;
+      }
+    }
+    
+    if (currentPos === -1) {
+      // Current highlight not visible, start from first
+      const idx = parseInt(visibleRows[0].dataset.idx);
+      highlightRow(idx);
+    } else {
+      // Move to next/prev visible row
+      const newPos = Math.max(0, Math.min(visibleRows.length - 1, currentPos + direction));
+      const idx = parseInt(visibleRows[newPos].dataset.idx);
+      highlightRow(idx);
+    }
+  }
+}
+
+export function loadHighlighted(deckId) {
+  if (highlightedIdx >= 0) {
+    loadTrack(deckId, highlightedIdx);
+  }
+}
