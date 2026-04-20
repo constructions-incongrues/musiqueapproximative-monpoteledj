@@ -1341,8 +1341,13 @@ body {
       onclick="document.getElementById('shortcuts-help').showModal()">
       Raccourcis <kbd>?</kbd>
     </button>
+    <script>
+      function toggleMode() {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', bubbles: true }));
+      }
+    </script>
     <button class="mact-btn mact-toggle" id="mode-toggle-btn" type="button"
-      onclick="window.dispatchEvent(new KeyboardEvent('keydown',{key:'f',bubbles:true}))">
+      onclick="toggleMode()">
       <span class="mode-label-normal">La F… <kbd>F</kbd></span>
       <span class="mode-label-flemme">Tournetablisme <kbd>F</kbd></span>
     </button>
