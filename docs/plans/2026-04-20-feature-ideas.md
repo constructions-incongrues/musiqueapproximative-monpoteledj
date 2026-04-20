@@ -4,8 +4,8 @@ Roadmap produit du DJ mixer, alignée avec les livraisons réelles sur `main`.
 
 ## Features
 
-### 1. Favoris / Bookmarks de la librairie ✅
-- Marquer/unmarquer des fichiers de la librairie pour les retrouver facilement
+### 1. Favoris / Bookmarks des collections ✅
+- Marquer/unmarquer des fichiers des collections pour les retrouver facilement
 - Afficher les favoris dans un onglet dédié pendant la session
 - Permet un accès rapide aux tracks sans scroller la liste complète
 
@@ -14,9 +14,9 @@ Roadmap produit du DJ mixer, alignée avec les livraisons réelles sur `main`.
 - Accès à toutes les commandes principales de l'app (play, pause, search, etc.)
 - Raccourci: Cmd+K (ou Ctrl+K sur Windows/Linux)
 
-### 3. Fullscreen Library Search ✅
-- Affiche la librairie en fullscreen pour une recherche rapide
-- Raccourci: Shift+B (toggle), ↑/↓ (ArrowUp/ArrowDown) ou j/k pour naviguer, Enter pour charger, Escape pour fermer
+### 3. Fullscreen Collections Search ✅
+- Affiche les collections en fullscreen pour une recherche rapide
+- **Raccourci**: Shift+L (toggle), ↑/↓ ou j/k pour naviguer, Enter pour charger, Escape pour fermer
 
 ### 4. Dub Sirens
 - Effets de sirene dub classiques (oscillateur + modulation)
@@ -27,9 +27,9 @@ Roadmap produit du DJ mixer, alignée avec les livraisons réelles sur `main`.
 - Playlist en lecture automatique (enchaine les tracks marquees)
 - Ideal pour DJ sets passifs / soirees sans intervention
 
-### 6. Enqueue in situ - a la Clementine
-- File d'attente visible dans la bibliotheque (indique l'ordre de passage)
-- Drag-and-drop ou raccourci clavier pour ajouter une track a la queue
+### 6. Enqueue in situ — à la Clementine
+- File d'attente visible dans les collections (indique l'ordre de passage)
+- Drag-and-drop ou raccourci clavier pour ajouter une track à la queue
 - Le deck suivant charge automatiquement la prochaine en queue
 
 ### 7. Export de session
@@ -63,14 +63,12 @@ Roadmap produit du DJ mixer, alignée avec les livraisons réelles sur `main`.
 
 ## Status global
 
-### Done
-- [x] Favoris / Bookmarks de la librairie
-- [x] Palette de commande
-- [x] Fullscreen Library Search
-- [x] Mode F(lemme)
-- [x] BUG: Calcul du BPM (resolu)
+## Status
 
-### A faire
+### Features
+- [x] Favoris / Bookmarks des collections
+- [x] Fullscreen Collections Search
+- [x] Palette de commande
 - [ ] Dub Sirens
 - [ ] Enqueue in situ
 - [ ] Export de session
