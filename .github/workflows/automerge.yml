@@ -52,19 +52,19 @@ jobs:
               const result = await github.graphql(
                 `query($owner: String!, $repo: String!, $number: Int!) {
                   repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $number) {
-                    id
-                    autoMergeRequest { id }
+                    pullRequest(number: $number) {
+                      id
+                      autoMergeRequest { id }
+                    }
                   }
-                }
-              }`,
+                }`,
                 { owner, repo, number: prNumber }
               );
 
               const pullRequest = result.repository.pullRequest;
               if (!pullRequest) {
-                core.warning(`Pull request #${prNumber} was not found.`);
-                return;
+                core.error(`Pull request #${prNumber} was not found.`);
+                throw new Error(`Pull request #${prNumber} was not found.`);
               }
 
               if (!pullRequest.autoMergeRequest) {
