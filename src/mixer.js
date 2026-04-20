@@ -202,7 +202,19 @@ export async function togglePlay(deckId) {
     document.getElementById(`art-${deckId}`).classList.add('idle');
   } else {
     deck.playing = true;
-    scheduleDeck(deck);
+    const playPromise = scheduleDeck(deck);
+    if (playPromise) {
+      playPromise.catch(e => {
+        console.warn('Play blocked:', e);
+        deck.playing = false;
+        btn.classList.remove('active');
+        btn.querySelector('.tri').style.borderLeft = '7px solid currentColor';
+        btn.querySelector('.tri').style.borderTop = '5px solid transparent';
+        btn.querySelector('.tri').style.borderBottom = '5px solid transparent';
+        btn.querySelector('span:last-child').textContent = 'Play';
+        document.getElementById(`art-${deckId}`).classList.add('idle');
+      });
+    }
     btn.classList.add('active');
     const t = btn.querySelector('.tri');
     t.style.border = '0'; t.style.width = '8px'; t.style.height = '8px'; t.style.background = 'currentColor';
