@@ -345,6 +345,26 @@ export function updatePlayhead(id, deck) {
   for (let i = 0; i < bars.length; i++) bars[i].classList.toggle('past', i < cutoff);
 }
 
+export function wireWaveSeek(id, deck) {
+  const waveform = document.getElementById(`wave-${id}`);
+  if (!waveform) return;
+  waveform.addEventListener('click', e => {
+    if (!deck.track) return;
+    const r = waveform.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    if (deck.audio && deck.audio.duration > 0) {
+      deck.audio.currentTime = frac * deck.audio.duration;
+    } else {
+      const dur = deck.track.dur ?? '0:0';
+      const [m, s] = dur.split(':').map(Number);
+      const total = m * 60 + s;
+      const bpm = (deck.track.bpm || 120) * (1 + deck.pitch / 100);
+      const secPerBeat = 60 / bpm;
+      deck.beatIndex = total > 0 ? Math.floor(frac * (total / secPerBeat)) : 0;
+    }
+  });
+}
+
 buildMeter(document.getElementById('meter-a'), 16);
 buildMeter(document.getElementById('meter-b'), 16);
 buildMeter(document.getElementById('vu-master'), 40);
