@@ -1275,6 +1275,7 @@ body {
   .flemme-playlist .playlist-table td { padding: 8px 12px; border-bottom: 1px solid #eee; }
   .flemme-playlist .playlist-table tr { cursor: pointer; }
   .flemme-playlist .playlist-table tr:hover td { background: #000; color: #fff; }
+  body.using-keyboard .flemme-playlist .playlist-table tr:hover td { background: transparent; color: inherit; }
   .flemme-playlist .playlist-table tr.flemme-current td {
     background: #000; color: #fff; font-weight: 700;
   }
@@ -1532,22 +1533,7 @@ body {
         <div class="contrib">Contribué par&nbsp;: <em id="contrib-b">—</em></div>
         <div class="track-body" id="track-body-b"></div>
         <a class="post-link" id="post-link-b" href="#" target="_blank" rel="noopener noreferrer" hidden>Voir sur le site →</a>
-      cd /Users/tristan/Documents/Workspaces/constructions-incongrues/musiqueapproximative.net/mix
-      
-      # Vérifier les changements
-      git status
-      
-      # Commit avec ce message:
-      git commit -m "style: unify library, playlist, and Flemme table styling
-      
-      - Standardized font-size to 12px across all table variants
-      - Unified padding to 8px 12px for accessible touch targets
-      - Consistent borders: 1px solid #eee (soft but visible)
-      - Unified hover states: background #000 + color #fff (high-contrast inversion)
-      - Replaced custom colors with design tokens (--ma-gray-dark, --ma-gray-light)
-      - Standardized artist column: Arvo 700 weight across all tables
-      - Harmonized header letter-spacing: 0.22em
-      - Standardized contrib: 11px, --ma-gray-dark, lighter on hover"      </div>
+      </div>
     </div><!-- /.track-info -->
 
     <div class="wave-col">
