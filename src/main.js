@@ -448,7 +448,7 @@ window.addEventListener('keydown', e => {
 // Shortcuts help dialog handlers
 document.getElementById('shortcuts-help-open')?.addEventListener('click', () => {
   const dialog = document.getElementById('shortcuts-help');
-  if (!dialog?.open) dialog?.showModal();
+  if (dialog && !dialog.open) dialog.showModal();
 });
 document.getElementById('mode-toggle-btn')?.addEventListener('click', () => {
   toggleFlemme();
