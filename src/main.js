@@ -1,8 +1,8 @@
 import { deckA, deckB } from './audio.js';
 import { fetchLibrary, LIBRARY, renderLibrary, renderPlaylists, populateContribFilter, cycleMark, unmarkTrack, markFilter, setSearchMode } from './library.js';
-import { flemmeMode, toggleFlemme, onTrackEnded } from './flemme.js';
+import { toggleFlemme } from './flemme.js';
 import { applyCrossfader, adjustXfader, wireXfader, wireChannelFader, wireEq, wirePitch,
-         loadTrack, togglePlay, sync, animate,
+         loadTrack, togglePlay, sync, animate, wireWaveSeek,
          toggleFullscreen, navigateHighlight, loadHighlighted, highlightFirst, fullscreenMode, highlightedIdx,
          xfaderVal } from './mixer.js';
 import { initMidi } from './midi.js';
@@ -114,6 +114,8 @@ wireEq('a', deckA);
 wireEq('b', deckB);
 wirePitch('a', deckA);
 wirePitch('b', deckB);
+wireWaveSeek('a', deckA);
+wireWaveSeek('b', deckB);
 applyCrossfader();
 
 document.getElementById('library-search').addEventListener('input', e =>

@@ -169,6 +169,7 @@ export function loadTrack(deckId, trackIdx) {
   const track = LIBRARY[trackIdx];
   if (!track) return;
   deck.track = track;
+  deck.beatIndex = 0;
   document.getElementById(`artist-${deckId}`).textContent = track.artist;
   document.getElementById(`title-${deckId}`).textContent = track.title;
   document.getElementById(`contrib-${deckId}`).textContent = track.contrib;
@@ -328,7 +329,7 @@ export function updatePlayhead(id, deck) {
     total = deck.audio.duration;
   } else {
     const secPerBeat = 60 / ((deck.track.bpm || 120) * (1 + deck.pitch/100));
-    pos = deck.playing ? (deck.beatIndex * secPerBeat) : 0;
+    pos = deck.beatIndex * secPerBeat;
     const dur = deck.track.dur ?? "0:0";
     const [m,s] = dur.split(':').map(Number);
     total = m*60 + s;
@@ -343,6 +344,29 @@ export function updatePlayhead(id, deck) {
   const bars = document.getElementById(`wave-bars-${id}`).children;
   const cutoff = Math.floor(frac * bars.length);
   for (let i = 0; i < bars.length; i++) bars[i].classList.toggle('past', i < cutoff);
+}
+
+export function wireWaveSeek(id, deck) {
+  const waveform = document.getElementById(`wave-${id}`);
+  if (!waveform) return;
+  waveform.addEventListener('click', e => {
+    if (!deck.track) return;
+    const r = waveform.getBoundingClientRect();
+    if (!Number.isFinite(r.width) || r.width <= 0) return;
+    const rawFrac = (e.clientX - r.left) / r.width;
+    if (!Number.isFinite(rawFrac)) return;
+    const frac = Math.max(0, Math.min(1, rawFrac));
+    if (deck.audio && deck.audio.duration > 0) {
+      deck.audio.currentTime = frac * deck.audio.duration;
+    } else {
+      const dur = deck.track.dur ?? '0:0';
+      const [m, s] = dur.split(':').map(Number);
+      const total = m * 60 + s;
+      const bpm = (deck.track.bpm || 120) * (1 + deck.pitch / 100);
+      const secPerBeat = 60 / bpm;
+      deck.beatIndex = total > 0 ? Math.floor(frac * (total / secPerBeat)) : 0;
+    }
+  });
 }
 
 buildMeter(document.getElementById('meter-a'), 16);
