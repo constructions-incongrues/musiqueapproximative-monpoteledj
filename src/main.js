@@ -1,6 +1,6 @@
 import { deckA, deckB } from './audio.js';
 import { fetchLibrary, LIBRARY, renderLibrary, renderPlaylists, populateContribFilter, cycleMark, unmarkTrack, markFilter, setSearchMode } from './library.js';
-import { flemmeMode, toggleFlemme, onTrackEnded } from './flemme.js';
+import { toggleFlemme } from './flemme.js';
 import { applyCrossfader, adjustXfader, wireXfader, wireChannelFader, wireEq, wirePitch,
          loadTrack, togglePlay, sync, animate, wireWaveSeek,
          toggleFullscreen, navigateHighlight, loadHighlighted, highlightFirst, fullscreenMode, highlightedIdx,

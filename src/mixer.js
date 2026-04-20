@@ -328,7 +328,7 @@ export function updatePlayhead(id, deck) {
     total = deck.audio.duration;
   } else {
     const secPerBeat = 60 / ((deck.track.bpm || 120) * (1 + deck.pitch/100));
-    pos = deck.playing ? (deck.beatIndex * secPerBeat) : 0;
+    pos = deck.beatIndex * secPerBeat;
     const dur = deck.track.dur ?? "0:0";
     const [m,s] = dur.split(':').map(Number);
     total = m*60 + s;
