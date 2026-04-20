@@ -6,7 +6,19 @@ export let LIBRARY = [];
 
 // Mark state — persisted in sessionStorage
 const MARKS_KEY = '__ma_marks__';
-export let markFilter = 0; // 0 = all, 1-5 = specific color
+export let markFilter = 0; // 0 = all, -1 = all marked, 1-5 = specific color
+
+// Search mode: 'all' | 'artist' | 'title' | 'contrib'
+export let searchMode = 'all';
+
+// Track current filter state so cycleMark/unmarkTrack can re-render correctly
+let _searchFilter = '';
+let _contribFilter = '';
+
+export function setSearchMode(mode) {
+  searchMode = mode;
+  renderLibrary(_searchFilter, _contribFilter, markFilter);
+}
 
 export function saveMarks() {
   try {
@@ -44,31 +56,63 @@ export async function fetchLibrary() {
   }
 }
 
+export function cycleMark(trackIdx) {
+  const t = LIBRARY[trackIdx];
+  if (!t) return;
+  t.mark = (t.mark || 0) >= 5 ? 0 : (t.mark || 0) + 1;
+  saveMarks();
+  renderLibrary(_searchFilter, _contribFilter, markFilter);
+  renderPlaylists();
+}
+
+export function unmarkTrack(trackIdx) {
+  const t = LIBRARY[trackIdx];
+  if (!t) return;
+  t.mark = 0;
+  saveMarks();
+  renderLibrary(_searchFilter, _contribFilter, markFilter);
+  renderPlaylists();
+}
+
 export function renderLibrary(filter = "", contribFilter = "", markOnly = 0) {
+  _searchFilter = filter;
+  _contribFilter = contribFilter;
+  markFilter = markOnly;
   const tbody = document.getElementById('library-body');
   tbody.innerHTML = "";
   const f = filter.trim().toLowerCase();
   const matches = [];
   LIBRARY.forEach((t, i) => {
-    const s = (t.artist + " " + t.title + " " + t.contrib + " " + t.mood).toLowerCase();
-    if (f && !s.includes(f)) return;
+    if (f) {
+      let haystack;
+      if (searchMode === 'artist') haystack = t.artist.toLowerCase();
+      else if (searchMode === 'title') haystack = (t.title + ' ' + t.mood).toLowerCase();
+      else if (searchMode === 'contrib') haystack = t.contrib.toLowerCase();
+      else haystack = (t.artist + ' ' + t.title + ' ' + t.contrib + ' ' + t.mood).toLowerCase();
+      if (!haystack.includes(f)) return;
+    }
     if (contribFilter && t.contrib !== contribFilter) return;
-    if (markOnly && t.mark !== markOnly) return;
+    if (markOnly === -1 && !t.mark) return;
+    else if (markOnly > 0 && t.mark !== markOnly) return;
     matches.push({ t, i });
   });
   const visible = matches.slice(0, LIBRARY_PAGE);
+  const MARK_COLORS = ['', '#e05', '#0a5', '#07f', '#f80', '#a0f'];
   visible.forEach(({ t, i }) => {
     const tr = document.createElement('tr');
     tr.dataset.idx = i;
     if (t.mark) tr.classList.add('mark-' + t.mark);
+    const pip = t.mark
+      ? `<span class="mark-pip" style="background:${MARK_COLORS[t.mark]}">${t.mark}</span>`
+      : '';
     tr.innerHTML = `
-      <td class="num">${String(i+1).padStart(2,'0')}</td>
+      <td class="mark-cell">${pip}</td>
       <td class="artist">${t.artist}</td>
       <td class="title">${t.title}${t.mood ? ` <span style="color:var(--ma-gray-dark);font-style:normal;">· ${t.mood}</span>` : ''}</td>
       <td class="num">${t.bpm ?? '—'}</td>
       <td>${t.key || '—'}</td>
       <td class="num">${t.dur ?? '—'}</td>
-      <td class="contrib">${t.contrib}</td>
+      <td class="contrib" data-contrib="${t.contrib}">${t.contrib}</td>
       <td class="loadcell">
         <button class="load-btn" data-load="a" data-idx="${i}"><span>→ A</span></button>
         <button class="load-btn" data-load="b" data-idx="${i}"><span>→ B</span></button>
@@ -81,6 +125,46 @@ export function renderLibrary(filter = "", contribFilter = "", markOnly = 0) {
     ? `${matches.length} morceaux — ${hidden} non affichés, utilisez la recherche`
     : `${matches.length} morceaux dans le carton`;
   document.getElementById('lib-count').textContent = label;
+
+  // Dim filter buttons for mark colors that have no tracks
+  const counts = [0, 0, 0, 0, 0, 0];
+  LIBRARY.forEach(t => { if (t.mark >= 1 && t.mark <= 5) counts[t.mark]++; });
+  for (let c = 1; c <= 5; c++) {
+    const btn = document.querySelector(`.mark-filter-btn[data-marks="${c}"]`);
+    if (btn) btn.classList.toggle('mark-empty', counts[c] === 0);
+  }
+}
+
+const PLAYLIST_COLORS = ['', '#e05', '#0a5', '#07f', '#f80', '#a0f'];
+
+export function renderPlaylists() {
+  const container = document.getElementById('playlists');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let c = 1; c <= 5; c++) {
+    const tracks = LIBRARY.map((t, i) => ({ t, i })).filter(({ t }) => t.mark === c);
+    if (tracks.length === 0) continue;
+    const section = document.createElement('div');
+    section.className = 'playlist';
+    section.innerHTML = `
+      <div class="playlist-head">
+        <span class="mark-pip" style="background:${PLAYLIST_COLORS[c]}">${c}</span>
+        <span class="playlist-count">${tracks.length} morceau${tracks.length > 1 ? 'x' : ''}</span>
+      </div>
+      <table class="playlist-table"><tbody>${tracks.map(({ t, i }) => `
+        <tr data-idx="${i}">
+          <td class="artist">${t.artist}</td>
+          <td class="title">${t.title}</td>
+          <td class="num">${t.dur ?? '—'}</td>
+          <td class="num">${t.bpm ?? '—'}</td>
+          <td>${t.key || '—'}</td>
+          <td class="loadcell">
+            <button class="load-btn" data-load="a" data-idx="${i}"><span>→ A</span></button>
+            <button class="load-btn" data-load="b" data-idx="${i}"><span>→ B</span></button>
+          </td>
+        </tr>`).join('')}</tbody></table>`;
+    container.appendChild(section);
+  }
 }
 
 export function populateContribFilter() {

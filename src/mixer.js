@@ -1,6 +1,37 @@
 import { ac, deckA, deckB, attachAudio, scheduleDeck, stopDeck, masterAnalyser } from './audio.js';
 import { LIBRARY } from './library.js';
-import { detectBpm, detectKey } from './lib.js';
+let _analyzerWorker = null;
+function _getWorker() {
+  if (!_analyzerWorker) {
+    _analyzerWorker = new Worker(new URL('./analyzer.worker.js', import.meta.url));
+    _analyzerWorker.onmessage = ({ data }) => {
+      const { trackIdx, bpm, key, dur, amplitudes, error } = data;
+      if (error) { console.warn('Analyzer worker error:', error); return; }
+      const track = LIBRARY[trackIdx];
+      if (!track) return;
+      track.bpm = bpm;
+      track.key = key;
+      if (dur !== null) track.dur = dur;
+      // Update library row
+      const row = document.querySelector(`#library-body tr[data-idx="${trackIdx}"]`);
+      if (row) {
+        const cells = row.querySelectorAll('td');
+        cells[3].textContent = bpm ?? '—';
+        cells[4].textContent = key || '—';
+        cells[5].textContent = dur ?? '—';
+      }
+      // Update deck display
+      for (const [deckId, deck] of [['a', deckA], ['b', deckB]]) {
+        if (deck.track === track) {
+          document.getElementById(`bpm-${deckId}`).textContent = bpm ?? '—';
+          document.getElementById(`key-${deckId}`).textContent = key || '—';
+          if (amplitudes) renderWave(deckId, track, amplitudes);
+        }
+      }
+    };
+  }
+  return _analyzerWorker;
+}
 
 export let xfaderVal = 0.5;
 
@@ -62,6 +93,7 @@ export function wireXfader() {
   track.addEventListener('touchstart', e => { dragging = true; setFromX(e.touches[0].clientX); e.preventDefault(); }, {passive:false});
   window.addEventListener('touchmove', e => { if (dragging) setFromX(e.touches[0].clientX); }, {passive:true});
   window.addEventListener('touchend', () => dragging = false);
+  track.addEventListener('dblclick', () => { xfaderVal = 0.5; applyCrossfader(); });
 }
 
 export function wireChannelFader(id, deck) {
@@ -86,6 +118,7 @@ export function wireChannelFader(id, deck) {
   track.addEventListener('touchstart', e => { dragging = true; setFromY(e.touches[0].clientY); e.preventDefault(); }, {passive:false});
   window.addEventListener('touchmove', e => { if (dragging) setFromY(e.touches[0].clientY); }, {passive:true});
   window.addEventListener('touchend', () => dragging = false);
+  track.addEventListener('dblclick', () => { v = 0.75; apply(); });
   apply();
 }
 
@@ -100,6 +133,7 @@ export function wireEq(prefix, deck) {
       deck[band].gain.setTargetAtTime(v, ac.currentTime, 0.01);
     };
     input.addEventListener('input', apply);
+    input.addEventListener('dblclick', () => { input.value = 0; apply(); });
     apply();
   });
 }
@@ -119,6 +153,7 @@ export function wirePitch(prefix, deck) {
       else scheduleDeck(deck);
     }
   });
+  pitchIn.addEventListener('dblclick', () => { pitchIn.value = 0; pitchIn.dispatchEvent(new Event('input')); });
   gainIn.addEventListener('input', () => {
     const v = parseFloat(gainIn.value);
     const linear = Math.pow(10, v/20);
@@ -126,6 +161,7 @@ export function wirePitch(prefix, deck) {
     const t = (v>0?'+':'') + v.toFixed(1) + " dB";
     gainLbl.textContent = t; gainHdr.textContent = t;
   });
+  gainIn.addEventListener('dblclick', () => { gainIn.value = 0; gainIn.dispatchEvent(new Event('input')); });
 }
 
 export function loadTrack(deckId, trackIdx) {
@@ -133,6 +169,7 @@ export function loadTrack(deckId, trackIdx) {
   const track = LIBRARY[trackIdx];
   if (!track) return;
   deck.track = track;
+  document.body.classList.add(`deck-${deckId}-loaded`);
   document.getElementById(`artist-${deckId}`).textContent = track.artist;
   document.getElementById(`title-${deckId}`).textContent = track.title;
   document.getElementById(`contrib-${deckId}`).textContent = track.contrib;
@@ -231,55 +268,9 @@ export function renderGlitch(deckId, track) {
   }
 }
 
-export async function analyzeTrack(deckId, trackIdx, url) {
+export function analyzeTrack(deckId, trackIdx, url) {
   if (!url) return;
-  console.log('analyzeTrack started:', { deckId, trackIdx, url });
-  let decoded;
-  try {
-    const res = await fetch(url);
-    const buf = await res.arrayBuffer();
-    decoded = await ac.decodeAudioData(buf);
-    console.log('analyzeTrack decoded:', { length: decoded.length, sampleRate: decoded.sampleRate, channels: decoded.numberOfChannels });
-  } catch(e) { 
-    console.warn('analyzeTrack decode failed:', e); 
-    return; 
-  }
-
-  const bpm = await Promise.resolve(detectBpm(decoded));
-  const key = detectKey(decoded);
-  console.log('analyzeTrack analysis done:', { bpm, key });
-
-  // Extract RMS amplitude per bar for real waveform
-  const ch = decoded.getChannelData(0);
-  const n = 180;
-  const blockSize = Math.floor(ch.length / n);
-  const amplitudes = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    let sum = 0;
-    for (let j = 0; j < blockSize; j++) sum += Math.abs(ch[i * blockSize + j]);
-    amplitudes[i] = sum / blockSize;
-  }
-  const max = Math.max(...amplitudes);
-  if (max > 0) for (let i = 0; i < n; i++) amplitudes[i] /= max;
-
-  const track = LIBRARY[trackIdx];
-  if (!track) return;
-  track.bpm = bpm;
-  track.key = key;
-
-  const deck = deckId === 'a' ? deckA : deckB;
-  if (deck.track === track) {
-    document.getElementById(`bpm-${deckId}`).textContent = bpm ?? '—';
-    document.getElementById(`key-${deckId}`).textContent = key || '—';
-    renderWave(deckId, track, amplitudes);
-  }
-
-  const row = document.querySelector(`#library-body tr[data-idx="${trackIdx}"]`);
-  if (row) {
-    const cells = row.querySelectorAll('td');
-    cells[3].textContent = bpm ?? '—';
-    cells[4].textContent = key || '—';
-  }
+  _getWorker().postMessage({ url, trackIdx });
 }
 
 export function buildMeter(el, n) {
@@ -351,20 +342,13 @@ buildMeter(document.getElementById('vu-master'), 40);
 // Fullscreen library search functions
 export function toggleFullscreen() {
   fullscreenMode = !fullscreenMode;
-  console.log('[mixer.toggleFullscreen] Toggling fullscreen to', fullscreenMode);
   const lib = document.getElementById('library');
-  console.log('[mixer.toggleFullscreen] Library element:', lib);
   if (lib) {
     lib.classList.toggle('fullscreen', fullscreenMode);
-    console.log('[mixer.toggleFullscreen] Applied fullscreen class, lib.className now:', lib.className);
+    lib.classList.toggle('hidden', !fullscreenMode);
   }
   highlightedIdx = -1;
   clearHighlight();
-  if (fullscreenMode) {
-    const searchInput = document.getElementById('library-search');
-    console.log('[mixer.toggleFullscreen] Focusing search input:', searchInput);
-    if (searchInput) searchInput.focus();
-  }
 }
 
 export function clearHighlight() {

@@ -1,5 +1,5 @@
 import { deckA, deckB } from './audio.js';
-import { fetchLibrary, LIBRARY, renderLibrary, populateContribFilter } from './library.js';
+import { fetchLibrary, LIBRARY, renderLibrary, renderPlaylists, populateContribFilter, cycleMark, unmarkTrack, markFilter, setSearchMode } from './library.js';
 import { applyCrossfader, adjustXfader, wireXfader, wireChannelFader, wireEq, wirePitch,
          loadTrack, togglePlay, sync, animate, 
          toggleFullscreen, navigateHighlight, loadHighlighted, fullscreenMode, highlightedIdx } from './mixer.js';
@@ -17,7 +17,37 @@ applyCrossfader();
 document.getElementById('library-search').addEventListener('input', e =>
   renderLibrary(e.target.value, document.getElementById('contrib-filter').value));
 
+document.getElementById('search-modes').addEventListener('click', e => {
+  const btn = e.target.closest('.smode-btn');
+  if (!btn) return;
+  _focusSearch(btn.dataset.mode);
+});
+
+document.getElementById('mark-filters').addEventListener('click', e => {
+  const btn = e.target.closest('.mark-filter-btn');
+  if (!btn) return;
+  const marks = parseInt(btn.dataset.marks);
+  document.querySelectorAll('.mark-filter-btn').forEach(b => b.classList.remove('active'));
+  if (marks !== 0) btn.classList.add('active');
+  renderLibrary(document.getElementById('library-search').value,
+                document.getElementById('contrib-filter').value,
+                marks);
+});
+
 document.getElementById('library-body').addEventListener('click', e => {
+  const b = e.target.closest('[data-load]');
+  if (b) { loadTrack(b.dataset.load, parseInt(b.dataset.idx)); e.stopPropagation(); return; }
+  const td = e.target.closest('td[data-contrib]');
+  if (td) {
+    const contrib = td.dataset.contrib;
+    const sel = document.getElementById('contrib-filter');
+    sel.value = contrib;
+    renderLibrary(document.getElementById('library-search').value, contrib, markFilter);
+    if (!fullscreenMode) toggleFullscreen();
+  }
+});
+
+document.getElementById('playlists').addEventListener('click', e => {
   const b = e.target.closest('[data-load]');
   if (b) { loadTrack(b.dataset.load, parseInt(b.dataset.idx)); e.stopPropagation(); }
 });
@@ -73,9 +103,46 @@ document.querySelectorAll('.headphone').forEach(h => {
 
 
 
+// Keyboard vs mouse: suppress hover styles during keyboard navigation
+window.addEventListener('keydown', () => document.body.classList.add('using-keyboard'), true);
+window.addEventListener('mousemove', () => document.body.classList.remove('using-keyboard'), { passive: true });
+
 let _percentTimestamp = 0;
 
+// Search mode state machine: "/" alone = global, "/a" = artist, "/t" = title, "/c" = contrib
+let _awaitingSearchMode = false;
+let _awaitingSearchTimer = null;
+
+function _focusSearch(mode) {
+  _awaitingSearchMode = false;
+  clearTimeout(_awaitingSearchTimer);
+  setSearchMode(mode);
+  document.querySelectorAll('.smode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode));
+  if (!fullscreenMode) toggleFullscreen();
+  const s = document.getElementById('library-search');
+  requestAnimationFrame(() => { s.focus(); s.select(); });
+}
+
 window.addEventListener('keydown', e => {
+  // "/" — start search mode selection; next key selects field (a/t/c), timeout = global
+  if (e.key === '/' && e.target.tagName !== 'INPUT') {
+    e.preventDefault();
+    _awaitingSearchMode = true;
+    clearTimeout(_awaitingSearchTimer);
+    _awaitingSearchTimer = setTimeout(() => _focusSearch('all'), 600);
+    if (!fullscreenMode) toggleFullscreen();
+    return;
+  }
+
+  // "/a" artiste · "/t" titre · "/c" contributeur
+  if (_awaitingSearchMode && e.target.tagName !== 'INPUT') {
+    e.preventDefault();
+    const modes = { a: 'artist', t: 'title', c: 'contrib' };
+    _focusSearch(modes[e.key] || 'all');
+    return;
+  }
+
   if (e.target.tagName === "INPUT" && e.key !== "Escape") {
     // In fullscreen search mode, allow arrow keys and Enter
     if (fullscreenMode && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter')) {
@@ -87,24 +154,35 @@ window.addEventListener('keydown', e => {
 
   // Fullscreen mode navigation
   if (fullscreenMode) {
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'ArrowDown' || e.key === 'j') {
       e.preventDefault();
       navigateHighlight(1);
       return;
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === 'ArrowUp' || e.key === 'k') {
       e.preventDefault();
       navigateHighlight(-1);
       return;
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      loadHighlighted('a');
+      loadHighlighted(e.shiftKey ? 'b' : 'a');
       toggleFullscreen();
       return;
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      toggleFullscreen();
+      const searchEl = document.getElementById('library-search');
+      if (document.activeElement === searchEl) {
+        searchEl.blur(); // just unfocus, stay in fullscreen
+      } else {
+        toggleFullscreen();
+      }
       return;
     }
+  }
+
+  // ESC hors fullscreen : ferme la biblio si ouverte
+  if (e.key === 'Escape' && fullscreenMode) {
+    e.preventDefault();
+    toggleFullscreen();
   }
 
   // Normal mode: Detect Shift+B for fullscreen toggle
@@ -114,14 +192,40 @@ window.addEventListener('keydown', e => {
     return;
   }
 
+  // Shift+1-5: filter library by mark color; Shift+0 = show all
+  if (e.shiftKey && ['Digit0','Digit1','Digit2','Digit3','Digit4','Digit5'].includes(e.code)) {
+    const marks = e.code === 'Digit0' ? 0 : parseInt(e.code.replace('Digit', ''));
+    document.querySelectorAll('.mark-filter-btn').forEach(b => b.classList.remove('active'));
+    if (marks !== 0) {
+      const btn = document.querySelector(`.mark-filter-btn[data-marks="${marks}"]`);
+      if (btn) btn.classList.add('active');
+    }
+    renderLibrary(document.getElementById('library-search').value,
+                  document.getElementById('contrib-filter').value, marks);
+    return;
+  }
+
+  // Mark / unmark track (s = cycle color, Shift+S = unmark)
+  if (e.key === 's' || e.key === 'S') {
+    const idx = highlightedIdx >= 0 ? highlightedIdx
+               : (deckA.track ? LIBRARY.indexOf(deckA.track) : -1);
+    if (idx >= 0) {
+      if (e.shiftKey) unmarkTrack(idx);
+      else cycleMark(idx);
+    }
+    return;
+  }
+
   // Normal playback controls
   if (e.key === 'a' || e.key === 'A') {
     togglePlay('a');
   } else if (e.key === 'l' || e.key === 'L') {
     togglePlay('b');
   } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
     adjustXfader(-0.05);
   } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
     adjustXfader(0.05);
   } else if (e.key === ' ') { 
     e.preventDefault(); 
@@ -134,9 +238,7 @@ window.addEventListener('keydown', e => {
 
 function applyTweaks(t) {
   document.body.classList.toggle('invert', !!t.invertRig);
-  document.getElementById('library').classList.toggle('hidden', !t.showLibrary);
   document.getElementById('tw-invert').classList.toggle('on', !!t.invertRig);
-  document.getElementById('tw-library').classList.toggle('on', !!t.showLibrary);
   const twSession = document.getElementById('tw-session');
   if (twSession) twSession.value = t.sessionName || "";
 }
@@ -149,7 +251,7 @@ function setTweak(k, v) {
   try { window.parent.postMessage({type:'__edit_mode_set_keys', edits:{[k]:v}}, '*'); } catch(e){}
 }
 document.getElementById('tw-invert').addEventListener('click', () => setTweak('invertRig', !tweaks.invertRig));
-document.getElementById('tw-library').addEventListener('click', () => setTweak('showLibrary', !tweaks.showLibrary));
+document.getElementById('tw-library').addEventListener('click', () => toggleFullscreen());
 document.getElementById('tw-session').addEventListener('input', e => setTweak('sessionName', e.target.value));
 
 window.addEventListener('message', e => {
@@ -164,6 +266,7 @@ initMidi();
 (async () => {
   await fetchLibrary();
   renderLibrary();
+  renderPlaylists();
   populateContribFilter();
   if (LIBRARY.length > 0) loadTrack('a', 0);
   if (LIBRARY.length > 1) loadTrack('b', 1);

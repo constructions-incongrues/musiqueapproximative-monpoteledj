@@ -28,7 +28,8 @@ lib.js          ← no deps (pure functions)
 audio.js        ← no local deps
 library.js      ← lib.js
 mixer.js        ← audio.js + library.js + lib.js
-main.js         ← audio.js + library.js + mixer.js
+midi.js         ← audio.js + mixer.js (dynamic imports inside initMidi)
+main.js         ← audio.js + library.js + mixer.js + midi.js
 ```
 
 ### Module responsibilities
@@ -39,9 +40,11 @@ main.js         ← audio.js + library.js + mixer.js
 
 - **`src/library.js`** — Data layer. `LIBRARY` is `export let` (live binding — reassigned by `fetchLibrary`, visible to all importers). Fetches from `https://www.musiqueapproximative.net/posts?format=json`, applies `fixBadEscapes` before `JSON.parse` (the API returns malformed JSON with bare backslashes). `renderLibrary` and `populateContribFilter` manipulate the DOM table directly.
 
-- **`src/mixer.js`** — UI controls and playback logic. `xfaderVal` is `export let` — mutated locally; importers use `adjustXfader(delta)` to change it. Contains top-level side-effect calls (`buildMeter(...)`) that run when the module is first imported. `analyzeTrack` fires-and-forgets: fetches + decodes audio, runs `detectBpm`/`detectKey`, updates `LIBRARY[trackIdx]` and DOM in place.
+- **`src/mixer.js`** — UI controls and playback logic. `xfaderVal` is `export let` — mutated locally; importers use `adjustXfader(delta)` to change it. Contains top-level side-effect calls (`buildMeter(...)`) that run when the module is first imported. `analyzeTrack` fires-and-forgets: fetches + decodes audio, runs `detectBpm`/`detectKey`, updates `LIBRARY[trackIdx]` and DOM in place. MIDI-callable setter exports: `setXfaderVal(v)`, `setChannelGain(deck, v)`, `setEqBand(deck, band, v)`. Fullscreen library search state: `export let fullscreenMode` and `export let highlightedIdx` — toggled by `toggleFullscreen()`, navigated by `navigateHighlight(dir)`, confirmed by `loadHighlighted(deckId)`.
 
-- **`src/main.js`** — Entry point. Wires all controls, attaches event listeners, calls the init IIFE (`fetchLibrary` → `renderLibrary` → `loadTrack`), kicks off `requestAnimationFrame(animate)`. Reads `window.TWEAK_DEFAULTS` which is set by a small inline `<script>` in `index.html` (uses `var` so it's accessible from the module scope).
+- **`src/midi.js`** — MIDI support. Pure functions `parseMidiMessage` and `dispatchMidiAction` are Node-safe and tested in `src/midi.test.js`. `initMidi()` uses dynamic `await import(...)` to load `audio.js` and `mixer.js` at runtime — this is intentional to avoid `window is not defined` errors in Vitest/Node (since `audio.js` references `window.AudioContext` at module parse time).
+
+- **`src/main.js`** — Entry point. Wires all controls, attaches event listeners, calls the init IIFE (`fetchLibrary` → `renderLibrary` → `loadTrack`), kicks off `requestAnimationFrame(animate)` and `initMidi()`. Reads `window.TWEAK_DEFAULTS` which is set by a small inline `<script>` in `index.html` (uses `var` so it's accessible from the module scope).
 
 ### Key data flow
 
@@ -56,6 +59,15 @@ main.js         ← audio.js + library.js + mixer.js
 - `Meyda` — from `meyda@5.6.3` — used in `detectKey` for chroma extraction
 
 Both are accessed as `globalThis.MusicTempo` / `globalThis.Meyda` in `lib.js` so they can be mocked with `vi.stubGlobal` in tests.
+
+### Fullscreen library search
+
+Activated with Shift+B — the library overlays the mixer. Arrow keys navigate the highlighted row, Enter loads the highlighted track onto deck A and closes fullscreen, Escape closes without loading. State lives in `fullscreenMode` and `highlightedIdx` (both `export let` from `mixer.js`). The keydown handler in `main.js` checks `fullscreenMode` first and short-circuits before normal playback controls.
+
+### Gotchas
+
+- `console.log` debug statements remain in `analyzeTrack` and `toggleFullscreen` in `mixer.js` — remove before production deploy.
+- Do not add static imports at the top of `midi.js` for `audio.js` or `mixer.js` — they must stay as dynamic imports inside `initMidi()` to keep the pure-function exports loadable in Node/Vitest.
 
 ### TWEAK_DEFAULTS / editmode
 

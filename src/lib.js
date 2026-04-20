@@ -40,23 +40,16 @@ export function mapPost(p) {
 
 export function detectBpm(audioBuffer) {
   try {
-    // Check multiple sources: window.MusicTempo (direct), globalThis.MusicTempo (module scope)
-    const MusicTempo = window?.MusicTempo || globalThis.MusicTempo;
-    
+    const MusicTempo = globalThis.MusicTempo;
+
     if (!MusicTempo) {
-      console.warn('[lib.detectBpm] MusicTempo not loaded yet. Waiting...', {
-        hasWindow: !!window,
-        windowHasMusicTempo: !!window?.MusicTempo,
-        globalHasMusicTempo: !!globalThis.MusicTempo,
-        loadFlags: { mt: window?.MUSIC_TEMPO_LOADED, meyda: window?.MEYDA_LOADED }
-      });
       // Retry logic: attendre que le CDN se charge
       return new Promise((resolve) => {
         const maxRetries = 50; // 5 secondes
         let retries = 0;
         const check = setInterval(() => {
           retries++;
-          const MT = window?.MusicTempo || globalThis.MusicTempo;
+          const MT = globalThis.MusicTempo;
           if (MT) {
             clearInterval(check);
             try {
