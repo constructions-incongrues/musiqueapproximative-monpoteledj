@@ -64,8 +64,13 @@ jobs:
               );
 
               const pullRequest = result.repository.pullRequest;
+              if (!pullRequest) {
+                core.warning(`Pull request #${prNumber} was not found.`);
+                return;
+              }
+
               if (!pullRequest?.autoMergeRequest) {
-                core.info('Auto-merge already disabled.');
+                core.info('No active auto-merge request found.');
                 return;
               }
 
@@ -79,6 +84,9 @@ jobs:
               );
               core.info('Auto-merge disabled.');
             } catch (error) {
-              core.error(`Failed to disable auto-merge for PR #${prNumber}: ${error.message}`);
+              core.error(
+                `Failed to disable auto-merge for PR #${prNumber}: ${error.message}. ` +
+                'Failing workflow to avoid leaving an ineligible PR with auto-merge enabled.'
+              );
               throw error;
             }
