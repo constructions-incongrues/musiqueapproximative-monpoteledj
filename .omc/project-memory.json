@@ -63,39 +63,45 @@
   "hotPaths": [
     {
       "path": "index.html",
-      "accessCount": 154,
-      "lastAccessed": 1776666072707,
+      "accessCount": 221,
+      "lastAccessed": 1776704551526,
       "type": "file"
     },
     {
       "path": "src/main.js",
-      "accessCount": 72,
-      "lastAccessed": 1776665591996,
+      "accessCount": 92,
+      "lastAccessed": 1776703389135,
       "type": "file"
     },
     {
       "path": "src/mixer.js",
-      "accessCount": 41,
-      "lastAccessed": 1776665176108,
+      "accessCount": 44,
+      "lastAccessed": 1776704532530,
       "type": "file"
     },
     {
       "path": "src/library.js",
-      "accessCount": 24,
-      "lastAccessed": 1776663000575,
+      "accessCount": 31,
+      "lastAccessed": 1776704279969,
       "type": "file"
+    },
+    {
+      "path": "src/flemme.js",
+      "accessCount": 12,
+      "lastAccessed": 1776703382258,
+      "type": "file"
+    },
+    {
+      "path": "src/lib.js",
+      "accessCount": 8,
+      "lastAccessed": 1776704526887,
+      "type": "directory"
     },
     {
       "path": "CLAUDE.md",
       "accessCount": 7,
       "lastAccessed": 1776643513931,
       "type": "file"
-    },
-    {
-      "path": "src/lib.js",
-      "accessCount": 4,
-      "lastAccessed": 1776644263466,
-      "type": "directory"
     },
     {
       "path": "src/analyzer.worker.js",
@@ -167,6 +173,18 @@
       "path": "src/midi.js",
       "accessCount": 1,
       "lastAccessed": 1776664229212,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 1,
+      "lastAccessed": 1776702439358,
+      "type": "directory"
+    },
+    {
+      "path": "posts.json",
+      "accessCount": 1,
+      "lastAccessed": 1776704478684,
       "type": "file"
     }
   ],

@@ -164,6 +164,37 @@ export function renderPlaylists() {
   }
 }
 
+export function renderFlemmePlaylist(trackIndices, currentIdx = 0) {
+  const container = document.getElementById('playlists');
+  if (!container) return;
+  container.innerHTML = '';
+  const section = document.createElement('div');
+  section.className = 'playlist flemme-playlist';
+  section.innerHTML = `
+    <table class="playlist-table"><tbody>${trackIndices.map((i, pos) => {
+      const t = LIBRARY[i];
+      if (!t) return '';
+      return `<tr data-idx="${i}" data-pos="${pos}"${pos === currentIdx ? ' class="flemme-current"' : ''}>
+        <td class="artist">${t.artist || '—'}</td>
+        <td class="title">${t.title || '—'}</td>
+        <td class="contrib" data-contrib="${t.contrib || ''}">${t.contrib || '—'}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  container.appendChild(section);
+}
+
+export function updateFlemmeHighlight(pos) {
+  const rows = document.querySelectorAll('.flemme-playlist tr');
+  rows.forEach((r, i) => r.classList.toggle('flemme-current', i === pos));
+  rows[pos]?.scrollIntoView({ block: 'nearest' });
+}
+
+export function updateFlemmeNav(pos) {
+  const rows = document.querySelectorAll('.flemme-playlist tr');
+  rows.forEach((r, i) => r.classList.toggle('flemme-focused', i === pos));
+  rows[pos]?.scrollIntoView({ block: 'nearest' });
+}
+
 export function populateContribFilter() {
   const sel = document.getElementById('contrib-filter');
   if (!sel) return;
