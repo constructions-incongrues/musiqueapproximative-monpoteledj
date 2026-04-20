@@ -77,7 +77,6 @@ export function scheduleDeck(deck) {
   if (deck.schedInterval) clearInterval(deck.schedInterval);
   const bpm = (track.bpm || 120) * (1 + deck.pitch/100);
   const beatMs = 60000 / bpm;
-  deck.beatIndex = 0;
   deck.startedAt = ac.currentTime;
   const rootHz = keyToHz(track.key);
   const moodSeed = track.mood.length;

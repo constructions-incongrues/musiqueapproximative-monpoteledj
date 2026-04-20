@@ -169,6 +169,7 @@ export function loadTrack(deckId, trackIdx) {
   const track = LIBRARY[trackIdx];
   if (!track) return;
   deck.track = track;
+  deck.beatIndex = 0;
   document.getElementById(`artist-${deckId}`).textContent = track.artist;
   document.getElementById(`title-${deckId}`).textContent = track.title;
   document.getElementById(`contrib-${deckId}`).textContent = track.contrib;
