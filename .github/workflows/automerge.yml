@@ -48,32 +48,37 @@ jobs:
             const prNumber = context.payload.pull_request.number;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const result = await github.graphql(
-              `query($owner: String!, $repo: String!, $number: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $number) {
-                    id
-                    autoMergeRequest {
-                      enabledAt
+            try {
+              const result = await github.graphql(
+                `query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $number) {
+                      id
+                      autoMergeRequest {
+                        enabledAt
+                      }
                     }
                   }
-                }
-              }`,
-              { owner, repo, number: prNumber }
-            );
+                }`,
+                { owner, repo, number: prNumber }
+              );
 
-            const pullRequest = result.repository.pullRequest;
-            if (!pullRequest?.autoMergeRequest) {
-              core.info('Auto-merge already disabled.');
-              return;
+              const pullRequest = result.repository.pullRequest;
+              if (!pullRequest?.autoMergeRequest) {
+                core.info('Auto-merge already disabled.');
+                return;
+              }
+
+              await github.graphql(
+                `mutation($pullRequestId: ID!) {
+                  disablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId }) {
+                    clientMutationId
+                  }
+                }`,
+                { pullRequestId: pullRequest.id }
+              );
+              core.info('Auto-merge disabled.');
+            } catch (error) {
+              core.error(`Failed to disable auto-merge for PR #${prNumber}: ${error.message}`);
+              throw error;
             }
-
-            await github.graphql(
-              `mutation($pullRequestId: ID!) {
-                disablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId }) {
-                  clientMutationId
-                }
-              }`,
-              { pullRequestId: pullRequest.id }
-            );
-            core.info('Auto-merge disabled.');
